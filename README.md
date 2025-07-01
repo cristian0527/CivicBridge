@@ -7,12 +7,12 @@ This is a simplified MVP built to meet the Week 2 project requirements.
 ## Problem
 
 - Government policies are often written in complex legal language.
-- Citizens don’t know which policies actually affect them.
+- Citizens don’t know which policies affect them.
 - News is overwhelming and lacks personal relevance.
 
 ## Solution
 
-CivicBridge asks users for basic info (zip code, role) and a policy title or summary. It then uses the Google GenAI API to generate a personalized explanation of how that policy might affect them — all through a command-line interface.
+CivicBridge asks users for basic info (zip code, role) and a policy title or summary. It then uses the Google GenAI API to generate a personalized explanation of how that policy might affect them, all through a command-line interface.
 
 ## Features
 
