@@ -10,6 +10,9 @@ import logging
 from typing import Optional, Dict, Any
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class PolicyExplainError(Exception):
@@ -20,15 +23,6 @@ class PolicyExplainer:
     """Handles AI-powered policy explanations using Google GenAI."""
 
     def __init__(self, api_key: Optional[str] = None):
-        """
-        Initialize the PolicyExplainer with Google GenAI.
-
-        Args:
-            api_key: Google GenAI API key. If None, reads from environment.
-
-        Raises:
-            PolicyExplainError: If API key is not provided or invalid.
-        """
         self.api_key = api_key or os.getenv('GOOGLE_GENAI_API_KEY')
         if not self.api_key:
             raise PolicyExplainError(
@@ -36,13 +30,8 @@ class PolicyExplainer:
                 "environment variable or pass api_key parameter."
             )
 
-        # Configure the GenAI client
         genai.configure(api_key=self.api_key)
-
-        # Initialize the model
         self.model = genai.GenerativeModel('gemini-1.5-flash')
-
-        # Set up logging
         self.logger = logging.getLogger(__name__)
 
     def generate_explanation(
@@ -51,24 +40,9 @@ class PolicyExplainer:
         user_context: Dict[str, Any],
         max_tokens: int = 500
     ) -> str:
-        """
-        Generate a personalized policy explanation.
-
-        Args:
-            policy_text: The policy content or summary to explain
-            user_context: Dictionary containing user info (zip_code, etc.)
-            max_tokens: Maximum tokens in the response
-
-        Returns:
-            Plain-English explanation of how the policy affects the user
-
-        Raises:
-            PolicyExplainError: If API call fails or response is invalid
-        """
         try:
             prompt = self._build_prompt(policy_text, user_context)
 
-            # Configure safety settings for policy content
             safety_settings = {
                 HarmCategory.HARM_CATEGORY_HATE_SPEECH:
                     HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
@@ -80,13 +54,12 @@ class PolicyExplainer:
                     HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
             }
 
-            # Generate response
             response = self.model.generate_content(
                 prompt,
                 safety_settings=safety_settings,
                 generation_config=genai.types.GenerationConfig(
                     max_output_tokens=max_tokens,
-                    temperature=0.3,  # Lower temperature for factual responses
+                    temperature=0.3,
                 )
             )
 
@@ -102,18 +75,8 @@ class PolicyExplainer:
             raise PolicyExplainError(error_msg) from original_error
 
     def _build_prompt(self, policy_text: str, user_context: Dict[str, Any]) -> str:
-        """
-        Build the prompt for the GenAI model.
-
-        Args:
-            policy_text: The policy content to explain
-            user_context: User information for personalization
-
-        Returns:
-            Formatted prompt string
-        """
         zip_code = user_context.get('zip_code', 'N/A')
-        occupation = user_context.get('occupation', 'general citizen')
+        role = user_context.get('role', 'general citizen')
 
         prompt = f"""
 You are CivicBridge, an AI assistant that explains government policies in simple,
@@ -121,7 +84,7 @@ personalized terms. Your goal is to help citizens understand how policies affect
 
 USER CONTEXT:
 - Location (Zip Code): {zip_code}
-- Occupation/Role: {occupation}
+- Occupation/Role: {role}
 
 POLICY TO EXPLAIN:
 {policy_text}
@@ -153,36 +116,16 @@ Generate a clear, helpful explanation now:
         return prompt
 
     def validate_policy_text(self, policy_text: str) -> bool:
-        """
-        Validate that the policy text is appropriate for processing.
-
-        Args:
-            policy_text: The policy text to validate
-
-        Returns:
-            True if valid, False otherwise
-        """
         if not policy_text or not policy_text.strip():
             return False
-
-        # Check minimum length
         if len(policy_text.strip()) < 10:
             return False
-
-        # Check maximum length (avoid hitting API limits)
         if len(policy_text) > 10000:
             self.logger.warning("Policy text truncated due to length")
             return True
-
         return True
 
     def get_sample_explanation(self) -> str:
-        """
-        Generate a sample explanation for testing purposes.
-
-        Returns:
-            Sample policy explanation
-        """
         sample_policy_text = (
             "The Inflation Reduction Act includes provisions for clean energy tax credits, "
             "allowing homeowners to claim up to $7,500 for electric vehicle purchases and "
@@ -191,39 +134,24 @@ Generate a clear, helpful explanation now:
 
         sample_context = {
             'zip_code': '90210',
-            'occupation': 'teacher'
+            'role': 'teacher'  
         }
 
         return self.generate_explanation(sample_policy_text, sample_context)
 
 
 def create_explainer(api_key: Optional[str] = None) -> PolicyExplainer:
-    """
-    Factory function to create a PolicyExplainer instance.
-
-    Args:
-        api_key: Optional API key. If None, reads from environment.
-
-    Returns:
-        Configured PolicyExplainer instance
-
-    Raises:
-        PolicyExplainError: If unable to create explainer instance.
-    """
     return PolicyExplainer(api_key)
 
 
-# Example usage and testing
 if __name__ == "__main__":
     import json
 
-    # Set up logging
     logging.basicConfig(level=logging.INFO)
 
     try:
         explainer = create_explainer()
 
-        # Test with sample data
         SAMPLE_POLICY = (
             "The CHIPS and Science Act provides $52 billion in subsidies for domestic "
             "semiconductor manufacturing and research, aimed at reducing dependence on "
@@ -232,7 +160,7 @@ if __name__ == "__main__":
 
         SAMPLE_USER = {
             'zip_code': '02101',
-            'occupation': 'software engineer'
+            'role': 'software engineer' 
         }
 
         print("Testing CivicBridge Policy Explainer...")
