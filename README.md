@@ -2,8 +2,6 @@
 
 CivicBridge is a command-line tool that helps users understand how U.S. government policies affect them personally. By combining basic user context with real-time policy data and generative AI, it produces tailored, plain-language explanations of complex federal rules and legislation.
 
-This MVP was developed for the Meta U Capstone Week 2 deliverable.
-
 ## Problem
 
 - Government policy is often written in complex legal or bureaucratic language.
