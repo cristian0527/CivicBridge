@@ -1,6 +1,7 @@
 import unittest
 from genai import create_explainer
 
+
 class TestGenAI(unittest.TestCase):
     def test_generate_summary_returns_string(self):
         explainer = create_explainer()
@@ -21,6 +22,7 @@ class TestGenAI(unittest.TestCase):
         summary = explainer.generate_explanation(policy_text, user_profile)
         self.assertIsInstance(summary, str)
         self.assertTrue(len(summary) > 10)
+
 
 if __name__ == "__main__":
     unittest.main()

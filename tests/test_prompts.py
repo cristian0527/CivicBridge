@@ -1,6 +1,7 @@
 import unittest
 from prompts import format_policy_prompt
 
+
 class TestPromptGeneration(unittest.TestCase):
     def test_prompt_contains_user_details(self):
         user_profile = {
@@ -23,6 +24,7 @@ class TestPromptGeneration(unittest.TestCase):
         self.assertIn("renter", prompt)
         self.assertIn("uninsured", prompt)
         self.assertIn(policy_text, prompt)
+
 
 if __name__ == "__main__":
     unittest.main()

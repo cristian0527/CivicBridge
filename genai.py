@@ -71,7 +71,8 @@ class PolicyExplainer:
 
         except Exception as original_error:
             error_msg = f"Failed to generate policy explanation: {str(original_error)}"
-            self.logger.error("Error generating explanation: %s", str(original_error))
+            self.logger.error(
+                "Error generating explanation: %s", str(original_error))
             raise PolicyExplainError(error_msg) from original_error
 
     def _build_prompt(self, policy_text: str, user_context: Dict[str, Any]) -> str:
@@ -85,9 +86,10 @@ class PolicyExplainer:
         missing_fields = [
             k for k in ["zip_code", "role", "age", "income_bracket", "housing_status", "healthcare_access"]
             if not user_context.get(k)
-            ]
+        ]
         if missing_fields:
-            self.logger.warning(f"Missing user context fields: {missing_fields}")
+            self.logger.warning(
+                f"Missing user context fields: {missing_fields}")
 
         prompt = f"""
 You are CivicBridge, an AI assistant that explains government policies in simple,
@@ -179,7 +181,7 @@ if __name__ == "__main__":
 
         SAMPLE_USER = {
             'zip_code': '02101',
-            'role': 'software engineer' 
+            'role': 'software engineer'
         }
 
         print("Testing CivicBridge Policy Explainer...")
@@ -188,7 +190,8 @@ if __name__ == "__main__":
         print(f"User: {json.dumps(SAMPLE_USER, indent=2)}")
         print("=" * 50)
 
-        EXPLANATION = explainer.generate_explanation(SAMPLE_POLICY, SAMPLE_USER)
+        EXPLANATION = explainer.generate_explanation(
+            SAMPLE_POLICY, SAMPLE_USER)
         print("EXPLANATION:")
         print(EXPLANATION)
 
