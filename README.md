@@ -37,7 +37,7 @@ CivicBridge asks users for basic demographic context and a policy of interest. I
 - AI Integration: Google Generative AI SDK (text summarization and explanation)
 - Database: SQLite (accessed via Python’s sqlite3 module)
 - External API:
-  - Federal Register (via REST API)
+  - Federal Register API
 - Testing: Python unittest and unittest.mock
 - CI/CD: GitHub Actions (automated linting and unit tests)
 
