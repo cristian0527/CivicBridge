@@ -76,7 +76,11 @@ def browse_policies_by_topic():
             date = doc.get('publication_date', 'Unknown date')
             print(f"{i}. [{date}] {title}...")
         
-        doc_choice = input("Select a policy (1-5): ").strip()
+        doc_choice = input(f"Select a policy (1-{min(5, len(documents))}): ").strip()
+        if not doc_choice.isdigit() or not (1 <= int(doc_choice) <= min(5, len(documents))):
+            print("Invalid policy selection.")
+            return None
+
         try:
             selected_doc = documents[int(doc_choice) - 1]
             return fr_client.format_document_for_explanation(selected_doc)
@@ -181,6 +185,11 @@ def display_history():
         zip_code, role, policy, explanation = row
         print(f"> [{zip_code} - {role}] | {policy[:100]}...")
         print(f"{explanation[:200]}...\n")
+
+def highlight(msg):
+    return f"\033[96m{msg}\033[0m"
+
+print(highlight("Welcome to CivicBridge: Understand How Policies Impact You"))
 
 
 def main():

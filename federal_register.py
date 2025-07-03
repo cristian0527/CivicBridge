@@ -139,10 +139,10 @@ class FederalRegisterClient:
         
         return self.search_documents(
             query=search_term,
-            document_types=['RULE', 'PRORULE'],
-            days_back=90,
-            per_page=15
-        )
+            document_types=None, 
+            days_back=365,        
+            per_page=20
+            )
     
     def format_document_for_explanation(self, document: Dict[str, Any]) -> str:
         """
