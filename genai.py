@@ -75,16 +75,31 @@ class PolicyExplainer:
             raise PolicyExplainError(error_msg) from original_error
 
     def _build_prompt(self, policy_text: str, user_context: Dict[str, Any]) -> str:
-        zip_code = user_context.get('zip_code', 'N/A')
-        role = user_context.get('role', 'general citizen')
+        zip_code = user_context.get("zip_code", "N/A")
+        role = user_context.get("role", "general citizen")
+        age = user_context.get("age", "N/A")
+        income = user_context.get("income_bracket", "N/A")
+        housing = user_context.get("housing_status", "N/A")
+        healthcare = user_context.get("healthcare_access", "N/A")
+
+        missing_fields = [
+            k for k in ["zip_code", "role", "age", "income_bracket", "housing_status", "healthcare_access"]
+            if not user_context.get(k)
+            ]
+        if missing_fields:
+            self.logger.warning(f"Missing user context fields: {missing_fields}")
 
         prompt = f"""
 You are CivicBridge, an AI assistant that explains government policies in simple,
 personalized terms. Your goal is to help citizens understand how policies affect them directly.
 
 USER CONTEXT:
-- Location (Zip Code): {zip_code}
-- Occupation/Role: {role}
+- Zip Code: {zip_code}
+- Role: {role}
+- Age: {age}
+- Income Bracket: {income}
+- Housing Status: {housing}
+- Healthcare Access: {healthcare}
 
 POLICY TO EXPLAIN:
 {policy_text}
@@ -134,7 +149,11 @@ Generate a clear, helpful explanation now:
 
         sample_context = {
             'zip_code': '90210',
-            'role': 'teacher'  
+            'role': 'teacher',
+            'age': 35,
+            'income_bracket': 'middle',
+            'housing_status': 'renter',
+            'healthcare_access': 'private'
         }
 
         return self.generate_explanation(sample_policy_text, sample_context)
