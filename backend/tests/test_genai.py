@@ -1,5 +1,5 @@
 import unittest
-from genai import create_explainer
+from backend.apis.genai import create_explainer
 
 
 class TestGenAI(unittest.TestCase):

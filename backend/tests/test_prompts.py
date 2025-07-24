@@ -1,5 +1,5 @@
 import unittest
-from prompts import format_policy_prompt
+from backend.apis.prompts import format_policy_prompt
 
 
 class TestPromptGeneration(unittest.TestCase):

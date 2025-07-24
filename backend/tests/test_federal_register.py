@@ -1,4 +1,4 @@
-from federal_register import create_federal_register_client, FederalRegisterError
+from backend.apis.federal_register import create_federal_register_client, FederalRegisterError
 from unittest.mock import patch, Mock
 import unittest
 import sys
