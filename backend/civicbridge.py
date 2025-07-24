@@ -1,10 +1,10 @@
 import sys
 import db
-from backend.apis.genai import (
+from apis.genai import (
     create_explainer,
     PolicyExplainError
 )
-from backend.apis.federal_register import (
+from apis.federal_register import (
     create_federal_register_client,
     FederalRegisterError,
 )
