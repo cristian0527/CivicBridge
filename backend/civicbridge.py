@@ -1,5 +1,5 @@
 import sys
-import db
+import backend.models.db as db
 from apis.genai import (
     create_explainer,
     PolicyExplainError
