@@ -11,6 +11,7 @@ from typing import Optional, Dict, Any
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from dotenv import load_dotenv
+from typing import Optional, Dict, Any, List
 
 load_dotenv()
 
@@ -159,6 +160,132 @@ Generate a clear, helpful explanation now:
         }
 
         return self.generate_explanation(sample_policy_text, sample_context)
+    
+    # NEW METHODS FOR CHAT RESPONSE GENERATION
+    def generate_chat_response(
+        self,
+        user_message: str,
+        user_context: Dict[str, Any]= None,
+        chat_history: List[Dict[str, str]] = None,
+        max_tokens: int = 500
+    ):
+        """Generate a chat response based on user input and context."""
+        try:
+            prompt = self._build_chat_prompt(user_message, user_context, chat_history)
+
+            safety_settings = {
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH:
+                    HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT:
+                    HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT:
+                    HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                HarmCategory.HARM_CATEGORY_HARASSMENT:
+                    HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+            }
+
+            response = self.model.generate_content(prompt,
+                safety_settings=safety_settings,
+                generation_config=genai.types.GenerationConfig(
+                    max_output_tokens=max_tokens,
+                    temperature=0.4,
+                )
+            )
+
+            if not response.text:
+                raise PolicyExplainError("Empty response from GenAI API")
+            
+            self.logger.info("Successfully generated chat response")
+            return response.text.strip()
+        except Exception as original_error:
+            error_msg = f"Failed to generate chat response: {str(original_error)}"
+            self.logger.error("Error generating chat response: %s", str(original_error))
+            raise PolicyExplainError(error_msg) from original_error
+
+    # Build a prompt for chat response generation
+    # This is similar to the policy explanation prompt but tailored for chat interactions
+    # It includes user context and recent chat history to provide relevant context for the AI
+    # This helps the AI generate responses that are more personalized and relevant to the user's situation
+    def _build_chat_prompt(
+        self,
+        user_message: str,
+        user_context: Dict[str, Any] = None,
+        chat_history: List[Dict[str, str]] = None
+    ) -> str:
+        """ Build a prompt for civicbridge chat response."""
+        prompt = """
+                You are CivicBridge Assistant, a helpful civic education AI that explains government, policies, 
+                and political processes in simple terms. You help people understand how government works and 
+                how to engage civically.
+
+                GUIDELINES:
+                1. Keep responses conversational and accessible (8th-grade reading level)
+                2. Stay factual and non-partisan
+                3. Focus on education, not advocacy
+                4. If asked about specific policies, provide balanced explanations
+                5. Encourage civic participation (voting, contacting reps, staying informed)
+                6. If you don't know something specific, say so and suggest reliable sources
+            """
+        
+        # Add user context if available
+        if user_context:
+            zip_code = user_context.get("zip_code", "")
+            role = user_context.get("role", "general citizen")
+            if zip_code or role:
+                prompt += f"\nUser Context: "
+                if zip_code:
+                    prompt += f"Zip Code: {zip_code} "
+                if role:
+                    prompt += f"Role: {role} "
+                prompt += "\n"
+        
+        # Add chat history if available
+        if chat_history:
+            prompt += "\nChat History:\n"
+            for message in chat_history[-15:]: # Limit to last 15 messages
+                prompt += f"User: {message.get('user_message', '')}\n"
+                prompt += f"Assistant: {message.get('bot_response', '')}\n"
+        prompt += "\n"
+
+        # Add current user message
+        prompt += f"User's current message: {user_message}\n\n"
+        prompt += "Provide a helpful, educational response based on the above context and guidelines."
+        return prompt
+    
+    # Policy Display Summaries
+    def generate_policy_summary(
+        self,
+        policy_text: str,
+        max_sentences: int = 4
+    ) -> str:
+        """Generate a concise, brief summary of a policy for display."""
+        try:
+            prompt = f"""
+            Summarize the following government policy, or bill, in 3-{max_sentences} clear, simple sentences, focusing on the key points and implications for the general public. 
+            Focus on what the policy does, who it affects, and any important details.
+            
+            Policy: {policy_text}
+
+            Summary: ({max_sentences} sentences max. Depending on the policy, it may be less than {max_sentences} sentences or more than {max_sentences} sentences. Though, keep it short and understable)
+            """
+            response = self.model.generate_content(
+                prompt,
+                generation_config=genai.types.GenerationConfig(
+                    max_output_tokens=150,
+                    temperature=0.3,
+                )
+            )
+
+            if not response.text:
+                raise PolicyExplainError("Empty response from GenAI API")
+
+            self.logger.info("Successfully generated policy summary")
+            return response.text.strip()
+        except Exception as e:
+            self.logger.error(f"Error generating policy summary: {e}")
+            return policy_text[:200] + "..." if len(policy_text) > 200 else policy_text  # Fallback to first 200 chars if error occurs
+
+
 
 
 def create_explainer(api_key: Optional[str] = None) -> PolicyExplainer:
