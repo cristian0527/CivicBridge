@@ -28,3 +28,6 @@ typing-inspection==0.4.1
 typing_extensions==4.14.0
 uritemplate==4.2.0
 urllib3==2.5.0
+requests==2.32.4
+pygeocodio
+python-dotenv

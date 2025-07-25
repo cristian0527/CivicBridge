@@ -1,5 +1,5 @@
 import unittest
-import db
+import backend.models.db as db
 
 
 class TestDatabase(unittest.TestCase):
