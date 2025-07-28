@@ -1,8 +1,58 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { MessageCircle } from "lucide-react";
 
 const ChatbotWidget = () => {
   const [open, setOpen] = useState(false);
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [sessionId, setSessionId] = useState("");
+
+  useEffect(() => {
+    const savedId = localStorage.getItem("cb_session_id");
+    if (savedId) {
+      setSessionId(savedId);
+    } else {
+      const newId = crypto.randomUUID();
+      localStorage.setItem("cb_session_id", newId);
+      setSessionId(newId);
+    }
+  }, []);
+
+  const sendMessage = async () => {
+    if (!input.trim()) return;
+
+    const userMsg = { role: "user", text: input };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("http://localhost:5000/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sessionId, message: input }),
+      });
+
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      const botMsg = { role: "bot", text: data.response };
+      setMessages((prev) => [...prev, botMsg]);
+    } catch (err) {
+      const errorMsg = { role: "bot", text: "❌ Error: " + err.message };
+      setMessages((prev) => [...prev, errorMsg]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
 
   return (
     <>
@@ -18,27 +68,54 @@ const ChatbotWidget = () => {
 
       {/* Chat Window */}
       {open && (
-        <div className="fixed bottom-20 right-6 z-50 w-80 h-96 bg-white border-2 border-blue-900 shadow-xl rounded-xl overflow-hidden flex flex-col">
+        <div className="fixed bottom-20 right-6 z-50 w-80 h-[28rem] bg-white border-2 border-blue-900 shadow-xl rounded-xl overflow-hidden flex flex-col">
           {/* Header */}
           <div className="bg-blue-900 text-white px-4 py-2 flex justify-between items-center text-sm font-bold">
-            CivicBridge Chatbot 
-            <button onClick={() => setOpen(false)} className="text-white hover:text-red-400 text-lg">×</button>
+            CivicBridge Chatbot
+            <button
+              onClick={() => setOpen(false)}
+              className="text-white hover:text-red-400 text-lg"
+            >
+              ×
+            </button>
           </div>
 
-          {/* Chat body */}
-          <div className="flex-1 p-4 text-sm overflow-y-auto text-gray-700 space-y-2">
-            <p><strong>Hi there!</strong></p>
-            <p>I’m your civic sidekick. Ask me about laws, policies, or your representatives!</p>
-            {/* Future: hook this up to LLM or chat backend */}
+          {/* Messages */}
+          <div className="flex-1 p-3 overflow-y-auto text-sm space-y-2">
+            {messages.length === 0 && (
+              <>
+                <p><strong>Hi there!</strong></p>
+                <p>I’m your civic sidekick. Ask me about laws, policies, or your representatives!</p>
+              </>
+            )}
+
+            {messages.map((msg, idx) => (
+              <div
+                key={idx}
+                className={`max-w-[90%] px-3 py-2 rounded text-sm ${
+                  msg.role === "user"
+                    ? "bg-blue-100 self-end text-right ml-auto"
+                    : "bg-gray-100 self-start text-left mr-auto"
+                }`}
+              >
+                {msg.text}
+              </div>
+            ))}
+
+            {loading && (
+              <p className="text-xs text-gray-400 italic">Thinking...</p>
+            )}
           </div>
 
-          {/* Input placeholder (non-functional for now) */}
+          {/* Input */}
           <div className="p-2 border-t bg-gray-50">
-            <input
-              type="text"
-              placeholder="Type a question..."
-              disabled
-              className="w-full px-3 py-2 border rounded-md text-sm bg-gray-100 text-gray-500 cursor-not-allowed"
+            <textarea
+              rows={1}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask a policy question..."
+              className="w-full resize-none px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
         </div>

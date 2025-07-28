@@ -1,4 +1,4 @@
-#!/Users/cristiancastellanos/CivicBridge/CivicBridge/.venv/bin/python
+#!/Users/aayahosman/CivicBridge/.venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys
