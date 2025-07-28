@@ -4,16 +4,27 @@ import InfoCard from "../components/InfoCard";
 
 const PolicyHub = () => {
   const { state } = useLocation();
-  const { zip, role } = state || {};
+  const { zip, role, policies } = state || {};
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Relevant Policies for {role} in {zip}</h2>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <InfoCard title="Healthcare Reform" description="Affects Medicaid eligibility in your area." />
-        <InfoCard title="Education Funding" description="Increased grants for students in your ZIP." />
-        <InfoCard title="Transportation Bill" description="Expands public transit access in your city." />
-      </div>
+      <h2 className="text-2xl font-bold mb-4">
+        Relevant Policies for {role} in {zip}
+      </h2>
+
+      {policies?.length ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {policies.map((policy, index) => (
+            <InfoCard
+              key={index}
+              title={policy.title}
+              description={policy.summary}
+            />
+          ))}
+        </div>
+      ) : (
+        <p>No policy data found. Try again.</p>
+      )}
     </div>
   );
 };

@@ -6,9 +6,27 @@ const ZipCodeForm = () => {
   const [role, setRole] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    navigate("/policies", { state: { zip, role } });
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/api/policies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ zip: zip.trim(), role }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Bad response from server");
+      }
+
+      const data = await response.json();
+      console.log("Policy data:", data);
+      navigate("/policies", { state: data });
+    } catch (err) {
+      console.error("Fetch error:", err);
+      alert("Failed to connect to the server. Please make sure the Flask API is running.");
+    }
   };
 
   return (
