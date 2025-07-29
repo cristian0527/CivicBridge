@@ -189,6 +189,9 @@ def get_representative_details(bioguide_id):
         print(f"❌ Error getting representative details for {bioguide_id}: {e}")
         return jsonify({"error": str(e)}), 500
 
+
+
+
 @app.route("/api/policyhub", methods=["GET"])
 def get_policyhub():
     zip_code = request.args.get("zip")
