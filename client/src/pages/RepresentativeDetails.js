@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -8,6 +10,7 @@ const RepresentativeDetail = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -34,6 +37,14 @@ const RepresentativeDetail = () => {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
+      {/* 🔙 Back Button */}
+      <button
+        onClick={() => navigate(-1)}
+        className="mb-6 flex items-center text-white bg-red-600 hover:bg-red-700 px-4 py-2 rounded shadow transition"
+      >
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Back to Results
+      </button>
       <h2 className="text-3xl font-bold mb-2">{representative.name}</h2>
       <p className="text-gray-600 mb-4">
         {representative.party} • {representative.state} • {representative.chamber}
