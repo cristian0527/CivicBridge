@@ -93,58 +93,6 @@ def explain_policy():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route("/api/policies", methods=["POST"])
-def get_policies():
-    data = request.get_json()
-    print("Received request:", data)
-
-    zip_code = data.get("zip")
-    role = data.get("role", "general")
-    age = data.get("age")
-    income = data.get("income_bracket")
-    housing = data.get("housing_status")
-    healthcare = data.get("healthcare_access")
-
-    role_topic_map = {
-        "student": "education",
-        "parent": "education",
-        "veteran": "veterans",
-        "worker": "employment",
-    }
-
-    topic = role_topic_map.get(role.lower(), "general")
-    print(f"Resolved topic for role '{role}': {topic}")
-
-    try:
-        congress_bills = congress_client.get_bills_by_topic(topic)[:3]
-        fed_policies = fedreg_client.get_policy_by_topic(topic)[:3]
-
-        formatted_bills = [
-            {
-                "title": bill.get("title", "No title"),
-                "summary": congress_client.get_bill_status_summary(bill)
-            }
-            for bill in congress_bills
-        ]
-
-        formatted_fed = [
-            {
-                "title": doc.get("title", "No title"),
-                "summary": doc.get("abstract", "No summary available")
-            }
-            for doc in fed_policies
-        ]
-
-        return jsonify({
-            "zip": zip_code,
-            "role": role,
-            "policies": formatted_bills + formatted_fed
-        })
-
-    except Exception as e:
-        print("❌ Error during policy fetch:", e)
-        return jsonify({"error": str(e)}), 500
-
 @app.route("/api/chat", methods=["POST"])
 def chat():
     try:
@@ -191,43 +139,65 @@ def get_representatives():
         print("❌ Error:", e)
         return jsonify({"error": str(e)}), 500
 
-@app.route("/api/policyhub", methods=["GET"])
-def policy_hub():
+
+@app.route("/api/representative/<bioguide_id>", methods=["GET"])
+def get_representative_details(bioguide_id):
+    """Get detailed information about a specific representation legislative activity"""
     try:
-        zip_code = request.args.get("zip")
-        print("📥 PolicyHub request for ZIP:", zip_code)
+        print(f"📋 Getting details for representative: {bioguide_id}")
+        # Get member details from Congress API
+        member_details = congress_client.get_member_details(bioguide_id)
 
-        # Example topic logic (could also use demographics later)
-        topic = "general"
-
-        # Get policies from both APIs
-        congress_bills = congress_client.get_bills_by_topic(topic)[:5]
-        fed_policies = fedreg_client.get_policy_by_topic(topic)[:5]  # ← FIXED LINE
-
-        formatted_bills = [
-            {
-                "title": bill.get("title", "No title"),
-                "summary": congress_client.get_bill_status_summary(bill)
+        # Get legislative activity (combines sponsored + cosponsored bills)
+        legislative_activity = congress_client.get_member_voting_record(bioguide_id, limit=15)
+        response_data = {
+            'representative' : {
+                "bioguide_id": bioguide_id,
+                "name": f"{member_details.get('firstName', '')} {member_details.get('lastName', '')}".strip(),
+                "party": member_details.get('partyName', ''),
+                "state": member_details.get('state', ''),
+                "district": member_details.get('district'),
+                "office_url": member_details.get('officialWebsiteUrl', ''),
+                "photo_url": member_details.get('depiction', {}).get('imageUrl', '') if member_details.get('depiction') else '',
+                "chamber": member_details.get('currentMember', {}).get('chamber', '') if member_details.get('currentMember') else ''
+            },
+            "legislative_activity": legislative_activity,
+            "summary": {
+                "total_items": len(legislative_activity),
+                "sponsored_count": len([item for item in legislative_activity if item['position'] == 'Sponsored']),
+                "cosponsored_count": len([item for item in legislative_activity if item['position'] == 'Cosponsored'])
             }
-            for bill in congress_bills
+        }
+        
+        print(f"✅ Successfully retrieved {len(legislative_activity)} items for {bioguide_id}")
+        return jsonify(response_data)
+        
+    except Exception as e:
+        print(f"❌ Error getting representative details for {bioguide_id}: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/policyhub", methods=["GET"])
+def get_policyhub():
+    zip_code = request.args.get("zip")
+    print("📥 PolicyHub request for ZIP:", zip_code)
+
+    try:
+        congress_bills = congress_client.get_recent_bills()[:5]
+        federal_policies = fedreg_client.get_recent_policies()[:5]
+
+        formatted = [
+            {
+                "title": p.get("title", "No title"),
+                "summary": p.get("summary", p.get("abstract", "No summary available"))
+            }
+            for p in congress_bills + federal_policies
         ]
 
-        formatted_fed = [
-            {
-                "title": doc.get("title", "No title"),
-                "summary": doc.get("abstract", "No summary available")
-            }
-            for doc in fed_policies
-        ]
-
-        return jsonify({
-            "zip": zip_code,
-            "policies": formatted_bills + formatted_fed
-        })
-
+        return jsonify({"policies": formatted})
     except Exception as e:
         print("❌ PolicyHub error:", e)
         return jsonify({"error": str(e)}), 500
+
 
 
 if __name__ == "__main__":
