@@ -271,23 +271,23 @@ def get_policyhub():
         print("❌ PolicyHub error:", e)
         return jsonify({"error": str(e)}), 500
 
-@app.route("/api/policy-categories", methods=["GET"])
-def get_policy_categories():
-    """Get available policy categories for the dropdown"""
-    categories = [
-        {"value": "healthcare", "label": "Healthcare"},
-        {"value": "housing", "label": "Housing"}, 
-        {"value": "education", "label": "Education"},
-        {"value": "employment", "label": "Employment"},
-        {"value": "taxes", "label": "Taxes"},
-        {"value": "environment", "label": "Environment"},
-        {"value": "transportation", "label": "Transportation"},
-        {"value": "immigration", "label": "Immigration"},
-        {"value": "social_security", "label": "Social Security"},
-        {"value": "veterans", "label": "Veterans"}
-    ]
+#@app.route("/api/policy-categories", methods=["GET"])
+#def get_policy_categories():
+    #"""Get available policy categories for the dropdown"""
+    #categories = [
+        #{"value": "healthcare", "label": "Healthcare"},
+        #{"value": "housing", "label": "Housing"}, 
+        #{"value": "education", "label": "Education"},
+        #{"value": "employment", "label": "Employment"},
+        #{"value": "taxes", "label": "Taxes"},
+        #{"value": "environment", "label": "Environment"},
+        #{"value": "transportation", "label": "Transportation"},
+        #{"value": "immigration", "label": "Immigration"},
+        #{"value": "social_security", "label": "Social Security"},
+        #{"value": "veterans", "label": "Veterans"}
+    #]
     
-    return jsonify({"categories": categories})
+    #return jsonify({"categories": categories})
 
 @app.route("/api/policies/search", methods=["POST"])
 def search_policies():
