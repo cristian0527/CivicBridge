@@ -200,9 +200,169 @@ def get_representative_details(bioguide_id):
         print(f"❌ Error getting representative details for {bioguide_id}: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route("/api/policyhub", methods=["POST"])  # Changed from GET to POST
+def get_policyhub():
+    data = request.get_json()
+    topic = data.get("topic", "")
+    print("📥 PolicyHub request for topic:", topic)
+    
+    # Valid topics 
+    valid_topics = [
+        'healthcare', 'housing', 'education', 'employment', 
+        'taxes', 'environment', 'transportation', 'immigration',
+        'social_security', 'veterans'
+    ]
+    
+    if not topic or topic not in valid_topics:
+        return jsonify({"error": f"Invalid topic. Must be one of: {valid_topics}"}), 400
+
+    try:
+        # Use existing federal register client to get policies by topic
+        federal_policies = fedreg_client.get_policy_by_topic(topic)
+        
+        # Also get some Congress bills for this topic
+        congress_bills = congress_client.get_bills_by_topic(topic)[:5]  # Limit to 5
+
+        # Format federal policies
+        formatted_federal = []
+        for p in federal_policies:
+            formatted_federal.append({
+                "title": p.get("title", "No title"),
+                "summary": p.get("abstract", "No summary available")[:200] + "..." if p.get("abstract") else "No summary available",
+                "date": p.get("publication_date", ""),
+                "agency": ', '.join([a.get('name', '') for a in p.get('agencies', [])]),
+                "type": p.get("type", "Rule"),
+                "url": p.get("html_url", ""),
+                "source": "Federal Register"
+            })
+        
+        # Format congress bills  
+        formatted_congress = []
+        for p in congress_bills:
+            formatted_congress.append({
+                "title": p.get("title", "No title"),
+                "summary": congress_client.get_bill_status_summary(p),
+                "date": p.get("updateDate", ""),
+                "agency": "U.S. Congress",
+                "type": f"{p.get('type', '').upper()} {p.get('number', '')}",
+                "url": p.get("url", ""),
+                "source": "Congress"
+            })
+
+        # Combine both sources
+        all_policies = formatted_federal + formatted_congress
+        
+        # Sort by date if possible (most recent first)
+        try:
+            all_policies.sort(key=lambda x: x.get('date', ''), reverse=True)
+        except:
+            pass  # If sorting fails, return unsorted
+
+        return jsonify({
+            "policies": all_policies,
+            "topic": topic,
+            "topic_display": topic.replace('_', ' ').title(),
+            "total_count": len(all_policies),
+            "federal_count": len(formatted_federal),
+            "congress_count": len(formatted_congress)
+        })
+        
+    except Exception as e:
+        print("❌ PolicyHub error:", e)
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/policy-categories", methods=["GET"])
+def get_policy_categories():
+    """Get available policy categories for the dropdown"""
+    categories = [
+        {"value": "healthcare", "label": "Healthcare"},
+        {"value": "housing", "label": "Housing"}, 
+        {"value": "education", "label": "Education"},
+        {"value": "employment", "label": "Employment"},
+        {"value": "taxes", "label": "Taxes"},
+        {"value": "environment", "label": "Environment"},
+        {"value": "transportation", "label": "Transportation"},
+        {"value": "immigration", "label": "Immigration"},
+        {"value": "social_security", "label": "Social Security"},
+        {"value": "veterans", "label": "Veterans"}
+    ]
+    
+    return jsonify({"categories": categories})
+
+@app.route("/api/policies/search", methods=["POST"])
+def search_policies():
+    """Search for policies by keyword/query"""
+    data = request.get_json()
+    query = data.get("query", "").strip()
+    
+    if not query:
+        return jsonify({"error": "Search query required"}), 400
+    
+    if len(query) < 2:
+        return jsonify({"error": "Search query must be at least 2 characters"}), 400
+    
+    try:
+        print(f"📥 Policy search request for: {query}")
+        
+        # Search federal register with the query
+        results = fedreg_client.search_documents(query, per_page=15)
+        
+        # Also search congress bills 
+        congress_results = congress_client.search_bills(query, limit=10)
+        
+        # Format federal register results
+        formatted_federal = []
+        for doc in results:
+            formatted_federal.append({
+                "title": doc.get("title", "No title"),
+                "summary": doc.get("abstract", "No summary available")[:200] + "..." if doc.get("abstract") else "No summary available",
+                "date": doc.get("publication_date", ""),
+                "agency": ', '.join([a.get('name', '') for a in doc.get('agencies', [])]),
+                "type": doc.get("type", "Rule"),
+                "url": doc.get("html_url", ""),
+                "source": "Federal Register"
+            })
+        
+        # Format congress results
+        formatted_congress = []
+        for bill in congress_results:
+            formatted_congress.append({
+                "title": bill.get("title", "No title"),
+                "summary": congress_client.get_bill_status_summary(bill),
+                "date": bill.get("updateDate", ""),
+                "agency": "U.S. Congress",
+                "type": f"{bill.get('type', '').upper()} {bill.get('number', '')}",
+                "url": bill.get("url", ""),
+                "source": "Congress"
+            })
+        
+        # Combine results
+        all_results = formatted_federal + formatted_congress
+        
+        # Sort by date (most recent first)
+        try:
+            all_results.sort(key=lambda x: x.get('date', ''), reverse=True)
+        except:
+            pass
+        
+        return jsonify({
+            "policies": all_results,
+            "query": query,
+            "total_count": len(all_results),
+            "federal_count": len(formatted_federal),
+            "congress_count": len(formatted_congress)
+        })
+    except Exception as e:
+        print(f"❌ Policy search error for '{query}':", e)
+        return jsonify({"error": str(e)}), 500
 
 
 
+if __name__ == "__main__":
+    print("🚀 CivicBridge Flask API running on http://localhost:5050")
+    app.run(debug=True, host="localhost", port=5050)
+
+"""
 @app.route("/api/policyhub", methods=["GET"])
 def get_policyhub():
     zip_code = request.args.get("zip")
@@ -224,9 +384,4 @@ def get_policyhub():
     except Exception as e:
         print("❌ PolicyHub error:", e)
         return jsonify({"error": str(e)}), 500
-
-
-
-if __name__ == "__main__":
-    print("🚀 CivicBridge Flask API running on http://localhost:5050")
-    app.run(debug=True, host="localhost", port=5050)
+"""
