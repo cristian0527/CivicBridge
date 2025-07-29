@@ -9,6 +9,7 @@ const UserProfileForm = () => {
     age: "",
     income_bracket: "",
     housing_status: "",
+    immigration_status: "",
     healthcare_access: "",
     policy_choice: "1",
     custom_policy_text: "",
@@ -91,6 +92,21 @@ const UserProfileForm = () => {
         onChange={handleChange}
         className="w-full px-4 py-2 border rounded"
       />
+      <select
+        name="immigration_status"
+        required
+        onChange={handleChange}
+        className="w-full px-4 py-2 border rounded"
+        value={formData.immigration_status}
+        >
+  <option value="">Select immigration status</option>
+  <option value="citizen">U.S. Citizen</option>
+  <option value="permanent_resident">Permanent Resident (Green Card)</option>
+  <option value="daca">DACA Recipient</option>
+  <option value="undocumented">Undocumented</option>
+  <option value="visa_holder">Visa Holder</option>
+  <option value="other">Other</option>
+</select>
       <input
         name="healthcare_access"
         placeholder="Healthcare access (insured/uninsured/etc)"

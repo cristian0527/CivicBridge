@@ -82,11 +82,12 @@ class PolicyExplainer:
         role = user_context.get("role", "general citizen")
         age = user_context.get("age", "N/A")
         income = user_context.get("income_bracket", "N/A")
+        immigration = user_context.get("immigration_status", "N/A")
         housing = user_context.get("housing_status", "N/A")
         healthcare = user_context.get("healthcare_access", "N/A")
 
         missing_fields = [
-            k for k in ["zip_code", "role", "age", "income_bracket", "housing_status", "healthcare_access"]
+            k for k in ["zip_code", "role", "age", "income_bracket", "housing_status", "healthcare_access", "immigration_status"]
             if not user_context.get(k)
         ]
         if missing_fields:
@@ -101,36 +102,27 @@ USER CONTEXT:
 - Zip Code: {zip_code}
 - Role: {role}
 - Age: {age}
-- Income Bracket: {income}
-- Housing Status: {housing}
-- Healthcare Access: {healthcare}
+- Income: {income}
+- Housing: {housing}
+- Immigration Status: {immigration}
+- Healthcare: {healthcare}
 
 POLICY TO EXPLAIN:
 {policy_text}
 
 INSTRUCTIONS:
-1. Explain this policy in plain English (8th-grade reading level)
-2. Focus specifically on how it affects someone in the user's situation
-3. Be factual and non-partisan
-4. Include practical implications (costs, benefits, requirements, deadlines)
-5. If the policy doesn't directly affect this user, explain why
-6. Keep the explanation under 400 words
-7. Use bullet points for key impacts when helpful
+1. Write in simple, conversational language (8th-grade level)
+2. Keep response to 2-3 short paragraphs maximum. Please keep response under 200 words.
+3. Focus on practical impact for this specific user
+4. Be direct and factual
+5. NO bullet points, asterisks, or special formatting
+6. NO bold text or markdown formatting
+7. Write in plain paragraph form only
 
 RESPONSE FORMAT:
 Start with a one-sentence summary, then provide details about personal impact.
 
-Example structure:
-"This policy [brief summary of what it does].
-
-For someone in your situation:
-• [Direct impact 1]
-• [Direct impact 2]
-• [What you need to know/do]
-
-[Additional context if needed]"
-
-Generate a clear, helpful explanation now:
+REMINDER: Please have the structure of explaining what the policy does, then explain how it affects someone. If user provides information, discuss how it affects them. Keep it brief and easy to understand
 """
         return prompt
 
@@ -236,15 +228,17 @@ Generate a clear, helpful explanation now:
         prompt = """
                 You are CivicBridge Assistant, a helpful civic education AI that explains government, policies, 
                 and political processes in simple terms. You help people understand how government works and 
-                how to engage civically.
+                how to engage civically in a very understandable way.
 
                 GUIDELINES:
                 1. Keep responses conversational and accessible (8th-grade reading level)
-                2. Stay factual and non-partisan
-                3. Focus on education, not advocacy
-                4. If asked about specific policies, provide balanced explanations
-                5. Encourage civic participation (voting, contacting reps, staying informed)
-                6. If you don't know something specific, say so and suggest reliable sources
+                2. NO bullet points, asterisks, or special formatting
+                3. Write in plain paragraph form only
+                4. Stay factual and non-partisan
+                5. Focus on education, not advocacy
+                6. If asked about specific policies, provide balanced explanations
+                7. Encourage civic participation (voting, contacting reps, staying informed)
+                8. If you don't know something specific, say so and suggest reliable sources
             """
         
         # Add user context if available
@@ -257,11 +251,11 @@ Generate a clear, helpful explanation now:
                     prompt += f"Zip Code: {zip_code} "
                 if role:
                     prompt += f"Role: {role} "
-                prompt += "\n"
+                prompt += "\n\n"
         
         # Add chat history if available
         if chat_history:
-            prompt += "\nChat History:\n"
+            prompt += "Chat History:\n"
             for message in chat_history[-15:]: # Limit to last 15 messages
                 prompt += f"User: {message.get('user_message', '')}\n"
                 prompt += f"Assistant: {message.get('bot_response', '')}\n"
@@ -269,7 +263,7 @@ Generate a clear, helpful explanation now:
 
         # Add current user message
         prompt += f"User's current message: {user_message}\n\n"
-        prompt += "Provide a helpful, educational response based on the above context and guidelines."
+        prompt += "Provide a helpful, educational response based on the above context and guidelines. Respond helpfully in 2-3 short paragraphs. No formatting or bullet points"
         return prompt
     
     # Policy Display Summaries

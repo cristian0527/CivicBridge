@@ -39,6 +39,7 @@ def explain_policy():
             "age": int(data["age"]),
             "income_bracket": data["income_bracket"],
             "housing_status": data["housing_status"],
+            "immigration_status": data["immigration_status"],
             "healthcare_access": data["healthcare_access"]
         }
         choice = str(data["policy_choice"])
@@ -187,6 +188,9 @@ def get_representative_details(bioguide_id):
     except Exception as e:
         print(f"❌ Error getting representative details for {bioguide_id}: {e}")
         return jsonify({"error": str(e)}), 500
+
+
+
 
 @app.route("/api/policyhub", methods=["GET"])
 def get_policyhub():
