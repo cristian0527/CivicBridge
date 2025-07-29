@@ -37,7 +37,7 @@ class CongressClient:
 
     def get_recent_bills(
         self,
-        congress: int = 118,  # Current Congress (118th = 2023-2024)
+        congress: int = 119,  # Current Congress (118th = 2023-2024)
         limit: int = 20,
         bill_type: Optional[str] = None
     ) -> List[Dict[str, Any]]:
