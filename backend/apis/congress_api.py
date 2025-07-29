@@ -10,6 +10,7 @@ import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 import requests
+from dotenv import load_dotenv
 
 
 class CongressAPIError(Exception):
@@ -37,7 +38,7 @@ class CongressClient:
 
     def get_recent_bills(
         self,
-        congress: int = 118,  # Current Congress (118th = 2023-2024)
+        congress: int = 119,  # Current Congress (118th = 2023-2024)
         limit: int = 20,
         bill_type: Optional[str] = None
     ) -> List[Dict[str, Any]]:
@@ -71,7 +72,7 @@ class CongressClient:
     def search_bills(
         self,
         query: str,
-        congress: int = 118,
+        congress: int = 119,
         limit: int = 20
     ) -> List[Dict[str, Any]]:
         """
@@ -262,7 +263,7 @@ class CongressClient:
 
         return policy_text
 
-    def get_trending_bills(self, days_back: int = 7) -> List[Dict[str, Any]]:
+    def get_trending_bills(self, days_back: int = 30) -> List[Dict[str, Any]]:
         """
         Get bills with recent activity (trending).
         """
@@ -283,7 +284,178 @@ class CongressClient:
                     continue  # Skip bills with invalid date format
 
         return trending_bills[:20]  # Return top 20 trending bills
+    
+    def get_member_details(self, bioguide_id: str) -> Dict[str, Any]:
+        """Get detailed information about a specific member of Congress."""
+        try:
+            url = f"{self.base_url}/member/{bioguide_id}"
+            
+            params = {'format': 'json'}
+            
+            response = self.session.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            
+            data = response.json()
+            member_data = data.get('member', {})
+            
+            self.logger.info(f"Retrieved member details for {bioguide_id}")
+            return member_data
+            
+        except requests.exceptions.RequestException as e:
+            error_msg = f"Failed to get member details for {bioguide_id}: {str(e)}"
+            self.logger.error(error_msg)
+            raise CongressAPIError(error_msg) from e
 
+    def get_member_sponsored_legislation(
+        self, 
+        bioguide_id: str, 
+        limit: int = 20
+    ) -> List[Dict[str, Any]]:
+        """Get bills sponsored by a specific member."""
+        try:
+            url = f"{self.base_url}/member/{bioguide_id}/sponsored-legislation"
+            
+            params = {
+                'format': 'json',
+                'limit': limit,
+                'sort': 'latestAction.actionDate+desc'
+            }
+            
+            response = self.session.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            
+            data = response.json()
+            sponsored_legislation = data.get('sponsoredLegislation', [])
+            
+            self.logger.info(f"Retrieved {len(sponsored_legislation)} sponsored bills for {bioguide_id}")
+            return sponsored_legislation
+            
+        except requests.exceptions.RequestException as e:
+            error_msg = f"Failed to get sponsored legislation for {bioguide_id}: {str(e)}"
+            self.logger.error(error_msg)
+            # Return empty list instead of raising error for demo resilience
+            return []
+
+    def get_member_cosponsored_legislation(
+        self, 
+        bioguide_id: str, 
+        limit: int = 20
+    ) -> List[Dict[str, Any]]:
+        """Get bills cosponsored by a specific member."""
+        try:
+            url = f"{self.base_url}/member/{bioguide_id}/cosponsored-legislation"
+            
+            params = {
+                'format': 'json',
+                'limit': limit,
+                'sort': 'latestAction.actionDate+desc'
+            }
+            
+            response = self.session.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            
+            data = response.json()
+            cosponsored_legislation = data.get('cosponsoredLegislation', [])
+            
+            self.logger.info(f"Retrieved {len(cosponsored_legislation)} cosponsored bills for {bioguide_id}")
+            return cosponsored_legislation
+            
+        except requests.exceptions.RequestException as e:
+            error_msg = f"Failed to get cosponsored legislation for {bioguide_id}: {str(e)}"
+            self.logger.error(error_msg)
+            return []
+
+    def get_member_voting_record(
+    self, 
+    bioguide_id: str, 
+    limit: int = 50
+) -> List[Dict[str, Any]]:
+        """Get voting record for a specific member."""
+        try:
+        # Note: The Congress API doesn't have a direct voting record endpoint
+        # This is a limitation we'll work around by getting their sponsored/cosponsored bills
+        # For a quick demo, we'll return their legislative activity
+        
+            sponsored = self.get_member_sponsored_legislation(bioguide_id, limit=limit//2)
+            cosponsored = self.get_member_cosponsored_legislation(bioguide_id, limit=limit//2)
+            
+            # Combine and format as "voting record" for demo purposes
+            voting_record = []
+            
+            for bill in sponsored:
+                if bill:  # Check if bill exists
+                    latest_action = bill.get('latestAction') or {}
+                    policy_area = bill.get('policyArea')
+                    
+                    bill_type = bill.get('type') or ''
+                    bill_number = bill.get('number') or ''
+                    
+                    vote_item = {
+                        'date': latest_action.get('actionDate', ''),
+                        'bill_title': bill.get('title', 'Unknown Bill'),
+                        'bill_number': f"{bill_type.upper()} {bill_number}" if bill_type else bill_number,
+                        'position': 'Sponsored',
+                        'latest_action': latest_action.get('text', 'No action recorded'),
+                        'congress': str(bill.get('congress', '')),
+                        'policy_area': policy_area.get('name', '') if policy_area else ''
+                    }
+                    voting_record.append(vote_item)
+            
+            for bill in cosponsored:
+                if bill:  # Check if bill exists
+                    latest_action = bill.get('latestAction') or {}
+                    policy_area = bill.get('policyArea')
+                    
+                    bill_type = bill.get('type') or ''
+                    bill_number = bill.get('number') or ''
+                    
+                    vote_item = {
+                        'date': latest_action.get('actionDate', ''),
+                        'bill_title': bill.get('title', 'Unknown Bill'),
+                        'bill_number': f"{bill_type.upper()} {bill_number}" if bill_type else bill_number,
+                        'position': 'Cosponsored',
+                        'latest_action': latest_action.get('text', 'No action recorded'),
+                        'congress': str(bill.get('congress', '')),
+                        'policy_area': policy_area.get('name', '') if policy_area else ''
+                    }
+                    voting_record.append(vote_item)
+            
+            # Sort by date (most recent first)
+            voting_record.sort(key=lambda x: x['date'], reverse=True)
+            
+            self.logger.info(f"Retrieved {len(voting_record)} voting record items for {bioguide_id}")
+            return voting_record[:limit]
+            
+        except Exception as e:
+            error_msg = f"Failed to get voting record for {bioguide_id}: {str(e)}"
+            self.logger.error(error_msg)
+            return []
+
+    def format_member_activity_summary(self, bioguide_id: str) -> str:
+        """Format a member's recent legislative activity for display."""
+        try:
+            member_details = self.get_member_details(bioguide_id)
+            voting_record = self.get_member_voting_record(bioguide_id, limit=10)
+            
+            name = f"{member_details.get('firstName', '')} {member_details.get('lastName', '')}".strip()
+            party = member_details.get('partyName', '')
+            state = member_details.get('state', '')
+            
+            summary = f"Recent Legislative Activity for {name} ({party}-{state}):\n\n"
+            
+            if voting_record:
+                summary += "Recent Bills:\n"
+                for i, vote in enumerate(voting_record[:5], 1):
+                    summary += f"{i}. {vote['position']}: {vote['bill_title'][:80]}...\n"
+                    summary += f"   Status: {vote['latest_action'][:60]}...\n"
+                    summary += f"   Date: {vote['date']}\n\n"
+            else:
+                summary += "No recent legislative activity found.\n"
+            
+            return summary
+            
+        except Exception as e:
+            return f"Unable to generate activity summary for {bioguide_id}: {str(e)}"
 
 def create_congress_client(api_key: Optional[str] = None) -> CongressClient:
     """
@@ -305,11 +477,11 @@ if __name__ == "__main__":
         client = create_congress_client()
 
         print("Testing Congress.gov API Client...")
-        print("=" * 50)
+        print("=" * 25)
 
         # Test 1: Get recent bills
         print("\n1. Getting recent bills...")
-        recent_bills = client.get_recent_bills(limit=5)
+        recent_bills = client.get_recent_bills(limit=25)
 
         if recent_bills:
             print(f"Found {len(recent_bills)} recent bills")
@@ -328,8 +500,8 @@ if __name__ == "__main__":
 
         # Test 2: Search for healthcare bills
         print("\n2. Searching for healthcare bills...")
-        healthcare_bills = client.search_bills('healthcare', limit=3)
-        print(f"Found {len(healthcare_bills)} healthcare bills")
+        healthcare_bills = client.search_bills('transporation', limit=25)
+        print(f"Found {len(healthcare_bills)} transporation bills")
 
         if healthcare_bills:
             for bill_data in healthcare_bills:
@@ -344,8 +516,52 @@ if __name__ == "__main__":
 
         # Test 4: Get trending bills
         print("\n4. Getting trending bills...")
-        trending = client.get_trending_bills(days_back=14)
+        trending = client.get_trending_bills(days_back=30)
         print(f"Found {len(trending)} trending bills")
+
+        print("\n5. Testing representative data...")
+        
+        # Test with some known bioguide IDs (these are real representatives)
+        test_bioguides = [
+            "S000148",   # Chuck Schumer
+            "D000563",  # Dick Durbin (Senator)
+            "B001135",  # Richard Blumenthal (Senator) 
+            "D000620"   # Rosa DeLauro (Representative)
+        ]
+        
+        for bioguide_id in test_bioguides:
+            try:
+                print(f"\n--- Testing {bioguide_id} ---")
+                
+                # Get member details
+                member_details = client.get_member_details(bioguide_id)
+                if member_details:
+                    name = f"{member_details.get('firstName', '')} {member_details.get('lastName', '')}".strip()
+                    party = member_details.get('partyName', '')
+                    state = member_details.get('state', '')
+                    print(f"✅ Member: {name} ({party}-{state})")
+                
+                # Get sponsored legislation
+                sponsored = client.get_member_sponsored_legislation(bioguide_id, limit=3)
+                print(f"✅ Sponsored bills: {len(sponsored)}")
+                
+                # Get voting record (our combined approach)
+                voting_record = client.get_member_voting_record(bioguide_id, limit=5)
+                print(f"✅ Legislative activity: {len(voting_record)} items")
+                
+                if voting_record:
+                    print("Recent activity:")
+                    for vote in voting_record[:2]:
+                        print(f"  - {vote['position']}: {vote['bill_title'][:50]}...")
+                
+                break  # Just test the first working one for now
+                
+            except CongressAPIError as e:
+                print(f"❌ Error testing {bioguide_id}: {e}")
+                continue
+            except Exception as e:
+                print(f"❌ Unexpected error testing {bioguide_id}: {e}")
+                continue
 
     except CongressAPIError as e:
         print(f"Congress API error: {e}")
@@ -354,3 +570,4 @@ if __name__ == "__main__":
         print("2. Set CONGRESS_API_KEY environment variable")
     except Exception as e:
         print(f"Unexpected error: {e}")
+    

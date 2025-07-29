@@ -34,7 +34,7 @@ class FederalRegisterClient:
         document_types: Optional[List[str]] = None,
         agencies: Optional[List[str]] = None,
         days_back: int = 30,
-        per_page: int = 20
+        per_page: int = 5
     ) -> List[Dict[str, Any]]:
 
         # Search for documents in the Federal Register.
@@ -143,7 +143,7 @@ class FederalRegisterClient:
             query=search_term,
             document_types=None,
             days_back=365,
-            per_page=20
+            per_page=5
         )
 
     def format_document_for_explanation(self, document: Dict[str, Any]) -> str:

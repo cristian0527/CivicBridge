@@ -73,6 +73,42 @@ def get_representatives():
         print("❌ Error:", e)
         return jsonify({"error": str(e)}), 500
 
+@app.route("/api/representative/<bioguide_id>", methods=["GET"])
+def get_representative_details(bioguide_id):
+    """Get detailed information about a specific representation legislative activity"""
+    try:
+        print(f"📋 Getting details for representative: {bioguide_id}")
+        # Get member details from Congress API
+        member_details = congress_client.get_member_details(bioguide_id)
+
+        # Get legislative activity (combines sponsored + cosponsored bills)
+        legislative_activity = congress_client.get_member_voting_record(bioguide_id, limit=15)
+        response_data = {
+            'representative' : {
+                "bioguide_id": bioguide_id,
+                "name": f"{member_details.get('firstName', '')} {member_details.get('lastName', '')}".strip(),
+                "party": member_details.get('partyName', ''),
+                "state": member_details.get('state', ''),
+                "district": member_details.get('district'),
+                "office_url": member_details.get('officialWebsiteUrl', ''),
+                "photo_url": member_details.get('depiction', {}).get('imageUrl', '') if member_details.get('depiction') else '',
+                "chamber": member_details.get('currentMember', {}).get('chamber', '') if member_details.get('currentMember') else ''
+            },
+            "legislative_activity": legislative_activity,
+            "summary": {
+                "total_items": len(legislative_activity),
+                "sponsored_count": len([item for item in legislative_activity if item['position'] == 'Sponsored']),
+                "cosponsored_count": len([item for item in legislative_activity if item['position'] == 'Cosponsored'])
+            }
+        }
+        
+        print(f"✅ Successfully retrieved {len(legislative_activity)} items for {bioguide_id}")
+        return jsonify(response_data)
+        
+    except Exception as e:
+        print(f"❌ Error getting representative details for {bioguide_id}: {e}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/api/policies", methods=["POST"])
 def get_policies():
     data = request.get_json()
