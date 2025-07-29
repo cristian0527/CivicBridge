@@ -37,6 +37,7 @@ def explain_policy():
             "age": int(data["age"]),
             "income_bracket": data["income_bracket"],
             "housing_status": data["housing_status"],
+            "immigration_status": data["immigration_status"],
             "healthcare_access": data["healthcare_access"]
         }
         choice = str(data["policy_choice"])

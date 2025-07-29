@@ -81,11 +81,12 @@ class PolicyExplainer:
         role = user_context.get("role", "general citizen")
         age = user_context.get("age", "N/A")
         income = user_context.get("income_bracket", "N/A")
+        immigration = user_context.get("immigration_status", "N/A")
         housing = user_context.get("housing_status", "N/A")
         healthcare = user_context.get("healthcare_access", "N/A")
 
         missing_fields = [
-            k for k in ["zip_code", "role", "age", "income_bracket", "housing_status", "healthcare_access"]
+            k for k in ["zip_code", "role", "age", "income_bracket", "housing_status", "healthcare_access", "immigration_status"]
             if not user_context.get(k)
         ]
         if missing_fields:
@@ -102,6 +103,7 @@ USER CONTEXT:
 - Age: {age}
 - Income Bracket: {income}
 - Housing Status: {housing}
+- Immigration Status: {immigration}
 - Healthcare Access: {healthcare}
 
 POLICY TO EXPLAIN:
