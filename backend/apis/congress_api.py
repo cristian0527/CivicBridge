@@ -290,7 +290,7 @@ class CongressClient:
         try:
             url = f"{self.base_url}/member/{bioguide_id}"
             
-            params = {'format': 'json'}
+            params = {'api_key': self.api_key, 'format': 'json'}
             
             response = self.session.get(url, params=params, timeout=10)
             response.raise_for_status()
@@ -316,6 +316,7 @@ class CongressClient:
             url = f"{self.base_url}/member/{bioguide_id}/sponsored-legislation"
             
             params = {
+                'api_key': self.api_key,
                 'format': 'json',
                 'limit': limit,
                 'sort': 'latestAction.actionDate+desc'
@@ -346,6 +347,7 @@ class CongressClient:
             url = f"{self.base_url}/member/{bioguide_id}/cosponsored-legislation"
             
             params = {
+                'api_key': self.api_key,
                 'format': 'json',
                 'limit': limit,
                 'sort': 'latestAction.actionDate+desc'

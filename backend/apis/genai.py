@@ -6,6 +6,7 @@ explanations of government policies based on user context.
 """
 
 import os
+import re
 import logging
 from typing import Optional, Dict, Any
 import google.generativeai as genai
@@ -162,6 +163,25 @@ Generate a clear, helpful explanation now:
         return self.generate_explanation(sample_policy_text, sample_context)
     
     # NEW METHODS FOR CHAT RESPONSE GENERATION
+    def _fetch_representative_data(self, zip_code: str, geocodio_client, congress_client) -> List[Dict]:
+        """Fetch representative data for a ZIP code."""
+        try:
+            reps = geocodio_client.get_representatives(zip_code)
+        
+            enhanced_reps = []
+            for rep in reps[:3]:  # Limit to 3 for performance
+                bioguide_id = rep.get('bioguide_id')
+                if bioguide_id:
+                # Get recent legislative activity
+                    recent_activity = congress_client.get_member_voting_record(bioguide_id, limit=5)
+                    rep['recent_activity'] = recent_activity
+                enhanced_reps.append(rep)
+        
+            return enhanced_reps
+        except Exception as e:
+            self.logger.error(f"Error fetching representative data: {e}")
+            return []
+
     def generate_chat_response(
         self,
         user_message: str,
@@ -284,9 +304,216 @@ Generate a clear, helpful explanation now:
         except Exception as e:
             self.logger.error(f"Error generating policy summary: {e}")
             return policy_text[:200] + "..." if len(policy_text) > 200 else policy_text  # Fallback to first 200 chars if error occurs
+        
+    def _detect_intent(self, user_message: str) -> Dict[str, Any]:
+        """Detect what type of government data the user is asking about."""
+        message_lower = user_message.lower()
+            
+        intent = {"type": "general", "entities": []}
+            
+        # Detect bill mentions (HR 123, H.R. 123, S. 456, etc.)
+        bill_patterns = [
+                r'\b(?:hr|h\.r\.)\s*(\d+)\b',  # HR 123 or H.R. 123
+                r'\bs\.?\s*(\d+)\b',           # S 456 or S. 456
+                r'\b(?:house|senate)\s*bill\s*(\d+)\b'  # House Bill 123
+            ]
+            
+        for pattern in bill_patterns:
+            matches = re.findall(pattern, message_lower)
+            if matches:
+                intent["type"] = "bill_inquiry"
+                intent["entities"].extend([{"type": "bill_number", "value": match} for match in matches])
+            
+        # Detect representative mentions
+        rep_keywords = ["representative", "congressman", "congresswoman", "senator", "rep"]
+        if any(keyword in message_lower for keyword in rep_keywords):
+            if intent["type"] == "general":
+                intent["type"] = "representative_inquiry"
+            
+        # Detect policy/legislation keywords
+        policy_keywords = ["policy", "legislation", "law", "act", "bill"]
+        if any(keyword in message_lower for keyword in policy_keywords):
+            if intent["type"] == "general":
+                intent["type"] = "policy_inquiry"
+            
+        # Detect email writing requests
+        email_keywords = ["write", "email", "letter", "contact", "message"]
+        if any(keyword in message_lower for keyword in email_keywords):
+            intent["type"] = "email_writing"
+            
+        return intent
+    
+    def _fetch_bill_data(self, bill_number: str, congress_client) -> Optional[Dict]:
+        """Fetch bill data from Congress API."""
+        try:
+            # Search for bills with this number
+            bills = congress_client.search_bills(f"bill {bill_number}", limit=5)
+                
+            if bills:
+                # Get the most recent/relevant bill
+                bill = bills[0]
+                bill_details = congress_client.get_bill_details(
+                    bill.get('congress', 119),
+                    bill.get('type', 'hr'),
+                    bill.get('number', bill_number))
+                return {
+                    "title": bill.get('title', 'Unknown Bill'),
+                    "number": f"{bill.get('type', '').upper()} {bill.get('number', '')}",
+                    "status": congress_client.get_bill_status_summary(bill),
+                    "summary": bill_details.get('summary', 'No summary available'),
+                    "sponsor": bill.get('sponsors', [{}])[0].get('fullName', 'Unknown') if bill.get('sponsors') else 'Unknown'
+                    }
+        except Exception as e:
+            self.logger.error(f"Error fetching bill data: {e}")
+        
+        return None
+        
+    def generate_enhanced_chat_response(
+        self,
+        user_message: str,
+        user_context: Dict[str, Any] = None,
+        chat_history: List[Dict[str, str]] = None,
+        congress_client=None,
+        geocodio_client=None,
+        max_tokens: int = 600) -> str:
+        """Generate a smart chat response that can fetch and use government data."""
+        try:
+            # Detect what the user is asking about
+            intent = self._detect_intent(user_message)
+            
+            # Fetch relevant data based on intent
+            context_data = {}
+            
+            if intent["type"] == "bill_inquiry" and congress_client:
+                for entity in intent["entities"]:
+                    if entity["type"] == "bill_number":
+                        bill_data = self._fetch_bill_data(entity["value"], congress_client)
+                        if bill_data:
+                            context_data["bill"] = bill_data
+                            break
+            
+            elif intent["type"] in ["representative_inquiry", "policy_inquiry"]:
+                zip_code = user_context.get("zip_code") if user_context else None
+                if zip_code and geocodio_client and congress_client:
+                    rep_data = self._fetch_representative_data(zip_code, geocodio_client, congress_client)
+                    if rep_data:
+                        context_data["representatives"] = rep_data
+            
+            # Build enhanced prompt with data
+            prompt = self._build_smart_chat_prompt(
+                user_message, 
+                user_context, 
+                chat_history, 
+                intent, 
+                context_data
+            )
+            
+            # Generate response
+            safety_settings = {
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+            }
 
+            response = self.model.generate_content(
+                prompt,
+                safety_settings=safety_settings,
+                generation_config=genai.types.GenerationConfig(
+                    max_output_tokens=max_tokens,
+                    temperature=0.4,
+                )
+            )
 
+            if not response.text:
+                raise PolicyExplainError("Empty response from GenAI API")
+            
+            self.logger.info(f"Generated enhanced chat response for intent: {intent['type']}")
+            return response.text.strip()
+        
+        except Exception as e:
+            self.logger.error(f"Error generating enhanced chat response: {e}")
+                # Fallback to regular chat response
+            return self.generate_chat_response(user_message, user_context, chat_history, max_tokens)
 
+    def _build_smart_chat_prompt(
+        self,
+        user_message: str,
+        user_context: Dict[str, Any] = None,
+        chat_history: List[Dict[str, str]] = None,
+        intent: Dict[str, Any] = None,
+        context_data: Dict[str, Any] = None) -> str:
+        """Build an enhanced prompt that includes relevant government data."""
+            
+        prompt = """
+            You are CivicBridge Assistant, a helpful AI that explains government, policies, and political processes in simple, 8th-grade level language. You help people understand how government works and how to engage civically.
+
+            GUIDELINES:
+            1. Keep responses conversational and accessible (8th-grade reading level)
+            2. Stay factual and non-partisan
+            3. Focus on education, not advocacy
+            4. If asked about specific policies, provide balanced explanations
+            5. Encourage civic participation (voting, contacting reps, staying informed)
+            6. If you don't know something specific, say so and suggest reliable sources
+            7. For bill explanations, focus on what it does and who it affects
+            8. For email writing, create professional, respectful, and informative content
+            """
+            
+            # Add user context
+        if user_context:
+            zip_code = user_context.get("zip_code", "")
+            role = user_context.get("role", "general citizen")
+            if zip_code or role:
+                prompt += f"\nUser Context: "
+                if zip_code:
+                    prompt += f"ZIP Code: {zip_code} "
+                if role:
+                    prompt += f"Role: {role} "
+                prompt += "\n"
+            
+            # Add relevant data based on what user is asking about
+        if context_data:
+            prompt += "\nRELEVANT DATA:\n"
+                
+            if "bill" in context_data:
+                bill = context_data["bill"]
+                prompt += f"""
+                    BILL INFORMATION:
+                    - Title: {bill['title']}
+                    - Number: {bill['number']}
+                    - Sponsor: {bill['sponsor']}
+                    - Status: {bill['status']}
+                    - Summary: {bill['summary'][:300]}...
+                    """
+                
+            if "representatives" in context_data:
+                prompt += "\nREPRESENTATIVES:\n"
+                for rep in context_data["representatives"][:2]:  # Limit for prompt length
+                    prompt += f"""
+                        - {rep['name']} ({rep['party']}) - {rep['chamber']}
+                        Recent Activity: {len(rep.get('recent_activity', []))} recent bills
+                        """
+            
+            # Add chat history
+        if chat_history:
+            prompt += "\nRecent Chat History:\n"
+            for message in chat_history[-10:]:  # Last 10 messages
+                prompt += f"User: {message.get('user_message', '')}\n"
+                prompt += f"Assistant: {message.get('bot_response', '')}\n"
+            
+            # Add current message and specific instructions based on intent
+        prompt += f"\nUser's current message: {user_message}\n\n"
+            
+        if intent and intent["type"] == "bill_inquiry":
+            prompt += "The user is asking about a specific bill. Use the bill data provided above to give a clear, factual explanation of what the bill does and who it affects.\n"
+        elif intent and intent["type"] == "email_writing":
+            prompt += "The user wants to write an email. Create a professional, respectful template they can customize. Include proper structure (greeting, body, closing) and talking points.\n"
+        elif intent and intent["type"] == "representative_inquiry":
+            prompt += "The user is asking about their representatives. Use the representative data provided to give helpful information about who represents them.\n"
+            
+        prompt += "Provide a helpful, educational response:"
+            
+        return prompt
 
 def create_explainer(api_key: Optional[str] = None) -> PolicyExplainer:
     return PolicyExplainer(api_key)
