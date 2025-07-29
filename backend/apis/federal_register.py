@@ -143,7 +143,7 @@ class FederalRegisterClient:
             query=search_term,
             document_types=None,
             days_back=365,
-            per_page=5
+            per_page=15
         )
 
     def format_document_for_explanation(self, document: Dict[str, Any]) -> str:
@@ -192,14 +192,14 @@ class FederalRegisterClient:
         recent_docs = self.search_documents(
             query="",
             document_types=['RULE', 'NOTICE'],
-            days_back=14,
+            days_back=30,
             per_page=20
         )
 
         # Sort by comment count or other engagement metrics if available and return most recent
         return recent_docs[:10]
     
-    def get_recent_policies(self, days_back: int = 7) -> List[Dict[str, Any]]:
+    def get_recent_policies(self, days_back: int = 15) -> List[Dict[str, Any]]:
         """
         Alias for getting recent rules as general recent policies.
         """
