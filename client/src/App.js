@@ -9,6 +9,7 @@ import ChatbotWidget from "./components/ChatbotWidget";
 import Explanation from "./pages/Explanation";
 import PolicyHubPage from "./pages/PolicyHubPage";
 import PoliciesPage from "./pages/PoliciesPage"; 
+import RepresentativeDetail from "./pages/RepresentativeDetails";
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
             <Route path="/representatives" element={<CongressionalHub />} />
             <Route path="/policyhub" element={<PolicyHubPage />} />
             <Route path="/policies" element={<PoliciesPage />} />
+            <Route path="/representatives/:bioguide_id" element={<RepresentativeDetail />} />
           </Routes>
         </div>
 

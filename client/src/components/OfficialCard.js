@@ -1,9 +1,19 @@
 import React from "react";
 import { Twitter } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const OfficialCard = ({ rep }) => {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate(`/representatives/${rep.bioguide_id}`);
+  };
+
   return (
-    <div className="border rounded-xl shadow hover:shadow-md transition p-4 bg-white">
+    <div
+  onClick={handleClick}
+  className="cursor-pointer border rounded-xl shadow hover:shadow-md transition p-4 bg-white"
+>
       <div className="flex items-center gap-4 mb-3">
         {rep.photo_url && (
           <img
