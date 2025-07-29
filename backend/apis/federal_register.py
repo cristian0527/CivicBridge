@@ -198,8 +198,14 @@ class FederalRegisterClient:
 
         # Sort by comment count or other engagement metrics if available and return most recent
         return recent_docs[:10]
+    
+    def get_recent_policies(self, days_back: int = 7) -> List[Dict[str, Any]]:
+        """
+        Alias for getting recent rules as general recent policies.
+        """
+        return self.get_recent_rules(days_back=days_back)
 
-
+    
 def create_federal_register_client() -> FederalRegisterClient:
     """
     Factory function to create a FederalRegisterClient instance.
