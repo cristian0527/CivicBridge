@@ -7,7 +7,7 @@ const Navbar = () => (
     CivicBridge
   </Link>
   <div className="space-x-6 text-sm font-semibold">
-    <Link to="/policies" className="hover:text-red-400 transition">Policies</Link>
+    <Link to="/policyhub" className="hover:text-red-400 transition">Policies</Link>
     <Link to="/representatives" className="hover:text-red-400 transition">Representatives</Link>
   </div>
 </nav>
