@@ -74,9 +74,9 @@ const RepresentativeDetail = () => {
         <ul className="space-y-2">
           {legislative_activity.map((item, idx) => (
             <li key={idx} className="border p-3 rounded-md shadow-sm bg-white">
-              <p className="font-medium">{item.title}</p>
-              <p className="text-sm text-gray-600">{item.date}</p>
-              <p className="text-sm text-gray-500">{item.position}</p>
+              <p className="font-medium">{item.bill_number} - {item.bill_title}</p>
+              <p className="text-sm text-gray-600">{item.latest_action}</p>
+              <p className="text-sm text-gray-500">{item.position} • {item.policy_area} • {item.date}</p>
             </li>
           ))}
         </ul>
