@@ -8,6 +8,7 @@ from apis.congress_api import *
 from apis.federal_register import *
 from apis.genai import create_explainer, PolicyExplainError
 from apis.geocodio_client import create_geocodio_client
+from explainer import PolicyExplainError
 from models import db
 
 # Load .env from .venv if present
@@ -18,6 +19,7 @@ app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
 
 # Create clients
+
 explainer = create_explainer()
 congress_client = create_congress_client()
 fedreg_client = create_federal_register_client()
@@ -105,10 +107,13 @@ def chat():
             return jsonify({"error": "Empty message"}), 400
 
         chat_history = db.get_recent_chat_context(session_id)
-        bot_response = explainer.generate_chat_response(
+
+        bot_response = explainer.generate_enhanced_chat_response(
             user_message=user_message,
             user_context=user_context,
-            chat_history=chat_history
+            chat_history=chat_history,
+            congress_client=congress_client,
+            geocodio_client=geocodio_client
         )
 
         db.save_chat_message(session_id, user_message, bot_response)
@@ -119,7 +124,14 @@ def chat():
         })
 
     except PolicyExplainError as e:
-        return jsonify({"error": str(e)}), 500
+        fallback_response = f"I'm currently experiencing high demand. Here's what I can tell you: {user_message[:100]}... Please try again in a moment for a detailed explanation."
+        db.save_chat_message(session_id, user_message, fallback_response)
+        return jsonify({
+            "session_id": session_id,
+            "response": fallback_response,
+            "source": "fallback",
+            "error": str(e)
+            }), 500
     except Exception as e:
         return jsonify({"error": f"Unexpected error: {e}"}), 500
 
