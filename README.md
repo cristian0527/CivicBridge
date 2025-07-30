@@ -1,136 +1,188 @@
-# CivicBridge: AI-Powered Civic Education Platform  
+# CivicBridge (Web App v2): AI‑Powered, Privacy‑First Policy Explainer
 
-CivicBridge is a full-stack web application that helps citizens understand government policies, connect with their representatives, and engage with the democratic process. By combining real-time government data with AI-powered explanations, it makes complex federal legislation and policies accessible to everyone.  
+CivicBridge is a **full‑stack web application** that helps people understand how government policies affect them, find their elected representatives, and get plain‑English answers powered by AI. It combines **live government data** with the **Google Gemini API** to translate complex policy language into clear explanations.
 
----
-
-## Problem  
-
-- Government policy is often written in complex legal or bureaucratic language  
-- Citizens don't know which policies affect them or how to contact their representatives  
-- There's a lack of accessible, personalized civic information for everyday citizens  
-- Finding relevant legislation and understanding representative voting records is difficult  
+> **Privacy first:** CivicBridge does **not** use login/registration. We avoid storing sensitive personal data to reduce risk for the communities we serve.
 
 ---
 
-## Solution  
-
-CivicBridge provides an intuitive web platform where users can:  
-
-- Find their representatives by ZIP code and view their legislative activity  
-- Explore federal policies by category with AI-powered explanations  
-- Chat with an AI assistant that explains bills, policies, and civic processes  
-- Get personalized explanations based on their role and circumstances  
+## Why No Login? (Privacy‑First Rationale)
+- Many users we serve (immigrants, mixed‑status families, low‑income households) face **real risks** from account‑linked data.
+- In an era of frequent **security breaches** and **low institutional trust**, collecting the minimum data necessary is the safest path.
+- No accounts = less data retained, smaller attack surface, easier compliance.
+- We only request lightweight, **contextual inputs** (e.g., ZIP code, role) to personalize answers during a session.
 
 ---
 
-## Features  
-
-### 🏛️ Representatives Hub  
-- Find congressional representatives and senators by ZIP code  
-- View detailed profiles with contact information and recent activity  
-- Browse sponsored and cosponsored legislation with status updates  
-- Access voting records and legislative positions  
-
-### 📜 Policy Explorer  
-- Browse federal policies by category (Healthcare, Education, Housing, etc.)  
-- Search for specific legislation or regulations  
-- View recent policies from Federal Register and Congress  
-- Get summaries and links to official government sources  
-
-### 🤖 AI-Powered Chat Assistant  
-- Ask questions about specific bills (e.g., "What is HR 142?")  
-- Get explanations tailored to your role (student, parent, veteran, etc.)  
-- Generate professional emails to representatives  
-- Understand how policies affect your personal circumstances  
-- Chat history preserved during sessions  
-
-### 🎯 Smart Data Integration  
-- Real-time data from Congress.gov API  
-- Federal Register API for current regulations  
-- Geocodio API for representative lookup  
-- AI explanations in simple, 8th-grade language  
+## Problem
+- Policies are written in dense legal language; most people struggle to parse impact.
+- It’s hard to know **which** policies apply to you locally.
+- Finding and understanding **representative activity** (sponsored/cosponsored bills, votes) is fragmented.
+- General AI tools can explain text, but they often **lack live data**, civic focus, and personal context.
 
 ---
 
-## Tech Stack  
+## Our Solution (Web App v2)
+**Four core experiences:**
 
-### Frontend  
-- **React** - Component-based UI framework  
-- **Tailwind CSS** - Utility-first styling  
-- **React Router** - Client-side routing  
-
-### Backend  
-- **Flask** - Python web framework  
-- **SQLite** - Local database for chat history and caching  
-- **RESTful API** - Clean endpoint design  
-
-### AI & APIs  
-- **Google Gemini AI** - Policy explanations and chat responses  
-- **Congress.gov API** - Bill data and representative information  
-- **Federal Register API** - Federal policies and regulations  
-- **Geocodio API** - ZIP code to congressional district mapping  
-
-### Development  
-- **Python** - Backend logic and API integrations  
-- **JavaScript/JSX** - Frontend components and interactions  
-- **CORS** - Cross-origin resource sharing for API calls  
+- **Home** — Enter ZIP, role, and context to get **personalized policy explanations**.
+- **Policies** — Browse by topic to see **real federal & congressional items** with plain‑English summaries and links to sources.
+- **Representatives** — Enter ZIP to see **who represents you**, how to contact them, and a snapshot of **legislative activity**.
+- **Chatbot** — Ask questions and get **concise, AI‑powered** answers in real time.
 
 ---
 
-## How It Works  
+## Features
+### Representatives Hub
+- Lookup by **ZIP code** (Geocodio → district)  
+- Contact details and **legislative activity** (sponsored / cosponsored) via Congress API
 
-### Representatives Flow  
-1. User enters ZIP code on Representatives page  
-2. System calls Geocodio API to find congressional district  
-3. Displays representative cards with photos and basic info  
-4. User clicks on representative to view detailed legislative activity  
-5. Congress API provides recent sponsored/cosponsored bills  
+### Policy Explorer
+- Browse policies by **topic**
+- Pulls recent policy items from **Federal Register** and **Congress** sources
+- Plain‑English summaries with links to official sources
 
-### Policy Flow  
-1. User navigates to Policies page  
-2. Selects a category (Healthcare, Education, etc.) from dropdown  
-3. System queries Federal Register and Congress APIs for relevant policies  
-4. Results displayed sorted by date (most recent first)  
-5. User can search for specific terms or browse categories  
+### AI Assistant
+- Powered by **Google Gemini API**
+- Explains bills, policies, and civic processes in **simple language**
+- Can tailor answers to user context (ZIP, role, etc.)
 
-### Chat Flow  
-1. User opens chat interface (available on all pages)  
-2. AI detects intent (bill inquiry, representative question, etc.)  
-3. System fetches relevant government data if needed  
-4. AI generates personalized explanation in simple language  
-5. Chat history preserved during session  
+### Privacy & Safety
+- **No login** and minimal data retention
+- Simple session state for chat; no sensitive PII stored
 
 ---
-## Installation & Setup  
 
-### Clone the repository  
+## Tech Stack
+**Frontend**
+- React (**Create React App**)
+- TailwindCSS + ShadCN UI
 
+**Backend**
+- Python **Flask**
+- **SQLite** (lightweight cache / chat history)
+- REST/JSON endpoints + CORS
+
+**APIs**
+- **Google Gemini API** (policy & chat explanations)
+- **Congress.gov API** (bills, members, activity)
+- **Federal Register API** (regulations & notices)
+- **Geocodio API** (ZIP → district/representatives)
+
+---
+
+## Architecture (High‑Level)
+```
+Client (CRA/React)  ──►  Flask API  ──►  Gemini (AI)
+       │                     │        └─►  Congress.gov / Federal Register / Geocodio
+       └────────────── CORS ─┘
+```
+- Client collects lightweight context → sends to Flask  
+- Flask fetches **live data**, builds a compact prompt, calls **Gemini**  
+- Response rendered as **plain‑English** summaries and chat answers
+
+---
+
+## Getting Started
+
+### 1) Prerequisites
+- Python **3.10+**
+- Node **18+** / npm **9+**
+
+### 2) Clone
 ```bash
-git clone [repository-url]
+git clone <your-repo-url>
 cd civicbridge
+```
 
+### 3) Backend Setup
+```bash
 cd backend
+python -m venv .venv && source .venv/bin/activate  # (Windows: .venv\Scripts\activate)
 pip install -r requirements.txt
 
-cd client
+# .env (create in backend/)
+GOOGLE_GENAI_API_KEY=your_gemini_api_key
+CONGRESS_API_KEY=your_congress_api_key
+GEOCODIO_API_KEY=your_geocodio_api_key
+# Optional: FEDERAL_REGISTER_BASE=https://www.federalregister.gov/api/v1
+FLASK_ENV=development
+```
+
+Run the server:
+```bash
+python server.py   # or: flask run (port 5000 by default)
+```
+
+### 4) Frontend Setup
+```bash
+cd ../client
 npm install
 
-# Terminal 1 - Backend
-cd backend
-python server.py
-
-# Terminal 2 - Frontend  
-cd client
-npm start
+# .env (create in client/)
+REACT_APP_BACKEND_URL=http://localhost:5000
 ```
-### Set up environment variables
-### Add your API keys to .env file
-#### GOOGLE_GENAI_API_KEY=your_gemini_api_key  
-#### CONGRESS_API_KEY=your_congress_api_key  
-#### GEOCODIO_API_KEY=your_geocodio_api_key 
 
+Run the client:
+```bash
+npm start   # CRA dev server (port 3000 by default)
+```
 
+The app should now be available at **http://localhost:3000** and talk to Flask on **http://localhost:5000**.
 
+---
 
+## Environment Variables (Summary)
 
+| Location  | Variable                    | Description                                  |
+|---------- |-----------------------------|----------------------------------------------|
+| backend   | `GOOGLE_GENAI_API_KEY`      | Google Gemini API key                         |
+| backend   | `CONGRESS_API_KEY`          | Congress.gov API key                          |
+| backend   | `GEOCODIO_API_KEY`          | Geocodio API key                              |
+| client    | `REACT_APP_BACKEND_URL`     | Base URL of the Flask server                  |
+
+> Federal Register API is public; no key required for basic endpoints.
+
+---
+
+## Usage Notes
+
+- Keep inputs **short and specific** when asking about policies.  
+- For chat, CivicBridge focuses on **education** and **non‑partisan** explanations.  
+- Use **Representatives** to quickly contact your members of Congress.
+
+---
+
+## Troubleshooting
+
+### 429 / Rate‑Limit (Gemini)
+If you see an error like:
+```
+You exceeded your current quota … GenerateRequestsPerMinutePerProjectPerModel-FreeTier
+```
+This means you exceeded the **free‑tier RPM**. Options:
+- Add a small **debounce** (disable the send button briefly) and **throttle** requests.
+- Implement **retry with backoff** and honor the server’s suggested `retry_delay`.
+- Cache identical prompts or reduce duplicate calls per UI action.
+- Consider enabling **billing** or using a lighter model variant for higher throughput.
+
+### Slow responses
+- Trim very long policy text before sending to Gemini.  
+- Limit chat history to the last 6–8 turns.  
+- Use **streaming** to show partial output for better perceived speed.  
+
+### CORS
+- Ensure the backend sets appropriate CORS headers for the client origin.
+
+---
+
+## Roadmap
+- **Search by topic/policy** with filters (e.g., “healthcare” + income/job)  
+- **Action features:** contact reps, sign petitions, join campaigns  
+- **Interactive map + chatbot** for local context  
+- **Multilingual** explanations
+
+---
+
+## Team
+Built by Aayah Osman, Cristian Castellanos, Amen Divine Ikamba
