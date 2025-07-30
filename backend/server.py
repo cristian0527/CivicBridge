@@ -218,11 +218,17 @@ def get_policyhub():
 
     try:
         # Use existing federal register client to get policies by topic
-        federal_policies = fedreg_client.get_policy_by_topic(topic)
+        federal_policies = fedreg_client.get_policy_by_topic(topic)[:30]
+        print(f"✅ Found {len(federal_policies)} federal policies for topic: {topic}")
         
         # Also get some Congress bills for this topic
-        congress_bills = congress_client.get_bills_by_topic(topic)[:5]  # Limit to 5
-
+        congress_bills = congress_client.get_bills_by_topic(topic, limit=30)
+        print(f"✅ Found {len(congress_bills)} congress bills for topic: {topic}")
+        congress_bills = [
+            b for b in congress_bills 
+            if topic.lower() in b.get("title", "").lower()
+                or topic.lower() in b.get("summary", "").lower()
+            ]
         # Format federal policies
         formatted_federal = []
         for p in federal_policies:

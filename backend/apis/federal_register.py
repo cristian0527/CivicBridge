@@ -143,7 +143,7 @@ class FederalRegisterClient:
             query=search_term,
             document_types=None,
             days_back=365,
-            per_page=15
+            per_page=150
         )
 
     def format_document_for_explanation(self, document: Dict[str, Any]) -> str:

@@ -158,26 +158,28 @@ class CongressClient:
             self.logger.error(error_msg)
             raise CongressAPIError(error_msg) from e
 
-    def get_bills_by_topic(self, topic: str) -> List[Dict[str, Any]]:
+    def get_bills_by_topic(self, topic: str, limit: int = 25) -> List[Dict[str, Any]]:
         """
         Get bills related to a specific topic.
         """
         # Define topic-specific search terms
         topic_terms = {
-            'healthcare': 'health care medical insurance Medicare Medicaid hospital',
-            'housing': 'housing rental mortgage affordable housing HUD',
-            'education': 'education student loan school university college',
-            'employment': 'employment job labor unemployment workforce',
-            'taxes': 'tax taxation income revenue IRS',
-            'environment': 'environment climate energy clean air water EPA',
-            'transportation': 'transportation highway infrastructure transit',
-            'immigration': 'immigration border visa citizenship DACA',
-            'social_security': 'social security retirement disability benefits',
-            'veterans': 'veterans military VA benefits healthcare'
-        }
+    'healthcare': '"health care" OR Medicare OR Medicaid',
+    'housing': '"affordable housing" OR rental OR mortgage OR HUD',
+    'education': '"student loan" OR university OR FAFSA OR school',
+    'employment': '"job creation" OR workforce OR unemployment',
+    'taxes': '"income tax" OR IRS OR tax credits',
+    'environment': '"climate change" OR EPA OR pollution OR green energy',
+    'transportation': '"public transportation" OR highway OR infrastructure',
+    'immigration': '"border security" OR visa OR DACA OR citizenship',
+    'social_security': '"social security" OR retirement OR disability',
+    'veterans': '"VA benefits" OR veterans healthcare OR military support'
+}
 
+        
         search_term = topic_terms.get(topic.lower(), topic)
-        return self.search_bills(search_term)
+        print(f"🔍 Searching Congress bills for topic: {topic} | query: {search_term}")
+        return self.search_bills(search_term, limit=limit)
 
     def get_bill_status_summary(self, bill_data: Dict[str, Any]) -> str:
         """
