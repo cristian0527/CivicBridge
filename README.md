@@ -40,7 +40,7 @@ CivicBridge provides an intuitive web platform where users can:
 
 ### 🤖 AI-Powered Chat Assistant  
 - Ask questions about specific bills (e.g., "What is HR 142?")  
-- Get explanations tailored to your role (student, parent, veteran, etc.)  
+- Get explanations tailored to you role (student, parent, veteran, etc.)  
 - Generate professional emails to representatives  
 - Understand how policies affect your personal circumstances  
 - Chat history preserved during sessions  
@@ -56,16 +56,15 @@ CivicBridge provides an intuitive web platform where users can:
 ## Tech Stack  
 
 ### Frontend  
-- **React** - Component-based UI framework  
-- **Tailwind CSS** - Utility-first styling  
-- **React Router** - Client-side routing  
+- **React**
+- **Tailwind CSS**   
 
 ### Backend  
 - **Flask** - Python web framework  
 - **SQLite** - Local database for chat history and caching  
 - **RESTful API** - Clean endpoint design  
 
-### AI & APIs  
+### APIs  
 - **Google Gemini AI** - Policy explanations and chat responses  
 - **Congress.gov API** - Bill data and representative information  
 - **Federal Register API** - Federal policies and regulations  
@@ -73,7 +72,7 @@ CivicBridge provides an intuitive web platform where users can:
 
 ### Development  
 - **Python** - Backend logic and API integrations  
-- **JavaScript/JSX** - Frontend components and interactions  
+- **JavaScript** - Frontend components and interactions  
 - **CORS** - Cross-origin resource sharing for API calls  
 
 ---
@@ -95,8 +94,7 @@ CivicBridge provides an intuitive web platform where users can:
 5. User can search for specific terms or browse categories  
 
 ### Chat Flow  
-1. User opens chat interface (available on all pages)  
-2. AI detects intent (bill inquiry, representative question, etc.)  
+1. User opens chat interface (available on all pages)    
 3. System fetches relevant government data if needed  
 4. AI generates personalized explanation in simple language  
 5. Chat history preserved during session  
@@ -113,6 +111,12 @@ cd civicbridge
 cd backend
 pip install -r requirements.txt
 
+# Set up environment variables
+# Add your API keys to .env file
+GOOGLE_GENAI_API_KEY=your_gemini_api_key  
+CONGRESS_API_KEY=your_congress_api_key  
+GEOCODIO_API_KEY=your_geocodio_api_key 
+
 cd client
 npm install
 
@@ -124,11 +128,7 @@ python server.py
 cd client
 npm start
 ```
-### Set up environment variables
-### Add your API keys to .env file
-#### GOOGLE_GENAI_API_KEY=your_gemini_api_key  
-#### CONGRESS_API_KEY=your_congress_api_key  
-#### GEOCODIO_API_KEY=your_geocodio_api_key 
+
 
 
 
